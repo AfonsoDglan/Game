@@ -1,7 +1,6 @@
 import pgzrun
 from pygame import Rect, Vector2
 import csv
-
 # Configurações da janela
 WIDTH = 1440
 HEIGHT = 960
@@ -27,6 +26,7 @@ TILE_TRAP = 29  # ID para armadilhas no Tiled
 TILE_KEY = 159  # ID para chaves no Tiled
 # Largura fixa das plataformas em tiles
 PLATFORM_WIDTH_TILES = 7  # Atualizado: cada plataforma agora tem exatamente 7 tiles
+
 
 class Player(Actor):
     def __init__(self, pos):
@@ -175,7 +175,8 @@ class Player(Actor):
         self.take_damage()
         
     def game_over(self):
-        print("Game Over!")
+        global game_state
+        game_state = "gameover"
 
 class Bullet(Actor):
     def __init__(self, pos, direction):
@@ -423,7 +424,7 @@ def init():
 
 # Chamado quando o jogo inicia
 init()
-
+game_state = "intro"  # intro, playing, gameover, win
 def update():
     player.update()
     
@@ -439,45 +440,104 @@ def update():
     for key in keys:
         key.update()
 
+# function drwa
+
 def draw():
     screen.clear()
-    screen.fill((135, 206, 235))  # Cor de fundo azul claro
     
-    # Desenha plataformas
-    for platform in platforms:
-        platform.draw()
+    if game_state == "intro":
+        screen.fill((0, 0, 0))
+        screen.draw.text("Bem-vindo ao Jogo de Plataforma!", center=(WIDTH//2, HEIGHT//2 - 100), fontsize=60, color="white")
+        screen.draw.text("Instruções:\n- Use as setas para se mover\n- Espaço para atirar\n- Colete a chave para vencer\n- Evite armadilhas e inimigos!", 
+                         center=(WIDTH//2, HEIGHT//2), fontsize=36, color="white", align="center")
+        screen.draw.text("Pressione ENTER para começar", center=(WIDTH//2, HEIGHT//2 + 200), fontsize=40, color="yellow")
     
-    # Desenha armadilhas
-    for trap in traps:
-        trap.draw()
+    elif game_state == "gameover":
+        screen.fill((0, 0, 0))
+        screen.draw.text("Game Over", center=(WIDTH//2, HEIGHT//2), fontsize=100, color="red")
+        screen.draw.text("Pressione R para reiniciar", center=(WIDTH//2, HEIGHT//2 + 100), fontsize=40, color="white")
     
-    # Desenha chaves
-    for key in keys:
-        key.draw()
-    
-    # Desenha inimigos
-    for enemy in enemies:
-        enemy.draw()
-    
-    # Desenha tiros
-    for bullet in bullets:
-        bullet.draw()
-    
-    # Desenha jogador
-    if player.invincible % 10 < 5:  # Pisca quando invencível
-        player.draw()
-    
-    # Desenha vidas
-    for i in range(player.lives):
-        screen.blit("heart", (20 + i * 30, 20))
-    
+    elif game_state == "win":
+        screen.fill((0, 100, 0))
+        screen.draw.text("Parabéns! Você venceu!", center=(WIDTH//2, HEIGHT//2), fontsize=80, color="white")
+        screen.draw.text("Pressione R para jogar novamente", center=(WIDTH//2, HEIGHT//2 + 100), fontsize=40, color="yellow")
+
+    elif game_state == "playing":
+        screen.fill((135, 206, 235))  # Cor de fundo azul claro
+        
+        for platform in platforms:
+            platform.draw()
+        for trap in traps:
+            trap.draw()
+        for key in keys:
+            key.draw()
+        for enemy in enemies:
+            enemy.draw()
+        for bullet in bullets:
+            bullet.draw()
+        if player.invincible % 10 < 5:
+            player.draw()
+        for i in range(player.lives):
+            screen.blit("heart", (20 + i * 30, 20))
+
+
+#function 02
 def on_key_down(key):
-    # Tecla para pular (espaço ou seta para cima)
-    if key == 1073741906:
-        player.jump()
+    global game_state
+    print(key)
+    if game_state == "intro" and key == 13:
+        game_state = "playing"
+        init()
     
-    if key == 32:
-        player.shoot()
+    elif game_state in ["gameover", "win"] and key == 114:
+        game_state = "playing"
+        init()
+
+    elif game_state == "playing":
+        if key == 1073741906:
+            player.jump()
+        elif key == 32:
+            player.shoot()
+
+#function 02
+def update():
+    if game_state != "playing":
+        return
+    
+    player.update()
+    for enemy in enemies:
+        enemy.update()
+    for bullet in bullets[:]:
+        bullet.update()
+    for trap in traps:
+        trap.update()
+    for key in keys[:]:
+        key.update()
+        if player.colliderect(key):
+            keys.remove(key)
+            end_game(win=True)
+
+
+#function 03
+def end_game(win=False):
+    global game_state
+    game_state = "win" if win else "gameover"
+
+#function 04
+def game_over(self):
+    end_game(win=False)
+
+
+
+#parei aqui
+    
+#def on_key_down(key):
+#    # Tecla para pular (espaço ou seta para cima)
+#    if key == 1073741906:
+#        player.jump()
+#    
+#    if key == 32:
+#        player.shoot()
     
 
 # Importa math para a animação de flutuação das chaves
